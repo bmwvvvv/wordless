@@ -54,29 +54,77 @@ class MyWidget(QtWidgets.QWidget):
         self.wordInd = random.randint(1, self.lex.totalWordNum)
         self.word = self.lex.getOneWord(self.wordInd)
 
+        self.initUI()
+
+    def initUI(self):
         self.button = QtWidgets.QPushButton("Click me!")
 
-        self.text = QtWidgets.QLabel('<font face="verdana" color="maroon" size="60"><b>'+self.word.liter+'</b></font>')
-        self.text.setAlignment(QtCore.Qt.AlignCenter)
-        self.text.setWordWrap(True)
+        self.curWord = QtWidgets.QLabel('<font face="verdana" color="maroon" size="10"><b>'+self.word.liter+'</b></font>')
+        self.curWord.setAlignment(QtCore.Qt.AlignCenter)
+        self.curWord.setScaledContents(True)
+
+
+        self.prevWord = QtWidgets.QLabel(self.word.liter + "\n" + self.word.chinese)
+        self.prevWord.setAlignment(QtCore.Qt.AlignCenter)
+        self.prevWord.setScaledContents(True)
+
+        self.negImage = QtGui.QPixmap("Images/negative.png")
+        self.negImage.scaledToHeight(60)
+        self.negImage.scaledToWidth(60)
+
+        self.posImage = QtGui.QPixmap("Images/sam.png")
+        self.posImage.scaledToHeight(60)
+        self.posImage.scaledToWidth(60)
+
+        self.hintImage = QtWidgets.QLabel()
+        self.hintImage.setAlignment(QtCore.Qt.AlignCenter)
+        self.hintImage.setPixmap(self.negImage)
+
 
         self.chinese = QtWidgets.QLineEdit()
         self.chinese.returnPressed.connect(self.magic)
 
-        self.layout = QtWidgets.QVBoxLayout()
-        self.layout.addWidget(self.text)
-        self.layout.addWidget(self.chinese)
-        self.layout.addWidget(self.button)
+        self.layout = QtWidgets.QGridLayout()
+        self.layout.setSpacing(5)
+        self.layout.addWidget(self.prevWord, 0, 0, 1, 1)
+        self.layout.addWidget(self.curWord,  1, 1, 1, 1)
+        self.layout.addWidget(self.hintImage,2, 1, 1, 1)
+        self.layout.addWidget(self.chinese,  3, 1, 1, 1)
+        self.layout.addWidget(self.button,   4, 1, 1, 1)
+        self.layout.setColumnStretch(0, 1)
+        self.layout.setColumnStretch(1, 2)
+        self.layout.setColumnStretch(2, 1)
+        self.layout.setRowStretch(0, 1)
+        self.layout.setRowStretch(1, 2)
+        self.layout.setRowStretch(2, 1)
+        self.layout.setRowStretch(3, 1)
+        
         self.setLayout(self.layout)
 
         self.button.clicked.connect(self.magic)
 
+    def refreshPrevWord(self):
+        self.prevWord.setText("<font face=verdana size=20><b>"+self.word.liter+"<br /></b></font>"
+                             +"<font face=verdana size=20><b>"+self.word.chinese+"</b></font>")
+
     def retrieveWord(self):
         self.wordInd = random.randint(1, self.lex.totalWordNum)    
         self.word = self.lex.getOneWord(self.wordInd)
-        self.text.setText('<font face="verdana" color="maroon" size="60"><b>'+self.word.liter+'</b></font>')
+        if round(pow(2, self.word.shots/self.word.occurs)) is 2:
+            tmpWordInd = random.randint(1, self.lex.totalWordNum)    
+            if self.wordInd == tmpWordInd:
+                pass
+            else:
+                self.wordInd = random.randint(1, self.lex.totalWordNum)    
+                self.word = self.lex.getOneWord(self.wordInd)
+
+        self.curWord.setText('<h6><font face="verdana" color="maroon" size="10"><b>'+self.word.liter+'</b></font></h6>')
+        self.hintImage.setPixmap(self.negImage)
+        self.hintImage.update()
 
     def updateWord(self):
+        self.refreshPrevWord()
+
         chineseStr = self.chinese.text()
         if chineseStr == '':
             self.word.occurs -= 1
@@ -86,6 +134,8 @@ class MyWidget(QtWidgets.QWidget):
         if re.search(chineseStr, self.word.chinese, re.X) is not None:
             self.word.shots += 1
             self.lex.updateShotsOfWord(self.word)
+            self.hintImage.setPixmap(self.posImage)
+            self.hintImage.update()
             
         self.chinese.clear()
 
