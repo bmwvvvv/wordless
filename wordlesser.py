@@ -1,47 +1,45 @@
 import re
 import sys
 import random
-import openpyxl as xls
+import pandas as pd
 from PySide2 import QtCore, QtWidgets, QtGui
 
 
 class Word:
-    def __init__(self, index, liter, part_of_speech, chinese, occurs, shots, flag):
+    def __init__(self, index, liter, part_of_speech, chinese, occurs, shots):
         self.index = index
         self.liter = liter
         self.pos = part_of_speech
         self.chinese = chinese
         self.occurs = occurs
         self.shots = shots
-        self.flag = flag
 
 
 class Lexicon:
     def __init__(self, path):
         self.filename = path
-        self.wb = xls.load_workbook(path)
-        self.ws = self.wb.active
-        self.totalWordNum = self.ws.max_row
+        self.df = pd.read_csv(path)
+        self.totalWordNum = self.df.shape[0]
+        self.header = ["word", "part_of_speech", "chinese", "occurs", "shots"]
+
+    def save(self):
+        self.df.to_csv(self.filename, header=self.header, index=False)
 
     def update_occurs_of_word(self, word):
-        self.ws.cell(column=4, row=word.index, value=word.occurs)
+        self.df.iloc[word.index, 3] = word.occurs
 
     def update_shots_of_word(self, word):
-        self.ws.cell(column=5, row=word.index, value=word.shots)
+        self.df.iloc[word.index, 4] = word.shots
 
-    def get_one_word(self, row=1):
-        if row is 0:
-            wordAttrs = list(self.ws.rows)[0]
-        else:
-            wordAttrs = list(self.ws.rows)[row - 1]
+    def get_one_word(self):
+        row = random.randint(0, self.totalWordNum - 1)
 
         word = Word(row,
-                    wordAttrs[0].value,  # literal
-                    wordAttrs[1].value,  # part of speech
-                    wordAttrs[2].value,  # Chinese
-                    wordAttrs[3].value,  # occurs
-                    wordAttrs[4].value,  # shots
-                    wordAttrs[5].value)  # flag
+                    self.df.iloc[row, 0],  # literal
+                    self.df.iloc[row, 1],  # part of speech
+                    self.df.iloc[row, 2],  # Chinese
+                    self.df.iloc[row, 3],  # occurs
+                    self.df.iloc[row, 4])  # shots
 
         word.occurs += 1
         self.update_occurs_of_word(word)  # guarantee the consistency of data
@@ -52,13 +50,16 @@ class Lexicon:
 class MyWidget(QtWidgets.QWidget):
     def __init__(self):
         super().__init__()
-        self.lex = Lexicon('words.xlsx')
-        self.wordInd = random.randint(1, self.lex.totalWordNum)
-        self.word = self.lex.get_one_word(self.wordInd)
+        self.lex = Lexicon("C:\\Users\\lulu\\PycharmProjects\\wordless\\word.csv")
+        self.word = self.lex.get_one_word()
 
-        self.initUI()
+        self.init_ui()
 
-    def initUI(self):
+    def closeEvent(self, event: QtGui.QCloseEvent):
+        self.lex.save()
+        event.accept()
+
+    def init_ui(self):
         self.button = QtWidgets.QPushButton("Click me!")
 
         self.curWord = QtWidgets.QLabel(
@@ -109,22 +110,20 @@ class MyWidget(QtWidgets.QWidget):
                               + "<font face=verdana size=20><b>" + self.word.chinese + "</b></font>")
 
     def retrieveWord(self):
-        self.wordInd = random.randint(1, self.lex.totalWordNum)
-        self.word = self.lex.get_one_word(self.wordInd)
+        self.word = self.lex.get_one_word()
         if round(pow(2, self.word.shots / self.word.occurs)) is 2:
-            tmpWordInd = random.randint(1, self.lex.totalWordNum)
-            if self.wordInd == tmpWordInd:
+            tmp_word = self.lex.get_one_word()
+            if self.word == tmp_word:
                 pass
             else:
-                self.wordInd = random.randint(1, self.lex.totalWordNum)
-                self.word = self.lex.get_one_word(self.wordInd)
+                self.word = self.lex.get_one_word()
 
         self.curWord.setText(
             '<h6><font face="verdana" color="maroon" size="10"><b>' + self.word.liter + '</b></font></h6>')
         self.hintImage.setPixmap(self.negImage)
         self.hintImage.update()
 
-    def updateWord(self):
+    def update_word(self):
         self.refreshPrevWord()
 
         chineseStr = self.chinese.text()
@@ -142,8 +141,7 @@ class MyWidget(QtWidgets.QWidget):
         self.chinese.clear()
 
     def magic(self):
-        self.updateWord()
-        self.lex.wb.save(self.lex.filename)
+        self.update_word()
         self.retrieveWord()
 
 
