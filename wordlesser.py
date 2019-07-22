@@ -48,12 +48,28 @@ class Lexicon:
         return word
 
 
+class MyLCDNumber(QtWidgets.QLCDNumber):
+    def __init__(self, num, color):
+        super().__init__()
+        self.setSegmentStyle(QtWidgets.QLCDNumber.Filled)
+        self.setStyleSheet("border:2px solid %s;color:%s;background:silver;" % (color, color))
+        self.setDigitCount(10)
+        self.num = num
+
+    def refresh(self):
+        self.num += 1
+        self.display(self.num)
+
+
 class MyWidget(QtWidgets.QWidget):
     def __init__(self):
         super().__init__()
         self.lex = Lexicon("C:\\Users\\lulu\\PycharmProjects\\wordless\\word.csv")
         self.prev_word = Word(-1, "", -1, "", 0, 0)
         self.cur_word = self.lex.get_one_word()
+
+        self.shots = 0
+        self.misses = 0
 
         self.prevWordEn = QtWidgets.QLabel(self.str2html('Ready? Go'))
         self.prevWordEn.setAlignment(QtCore.Qt.AlignCenter)
@@ -92,11 +108,25 @@ class MyWidget(QtWidgets.QWidget):
         self.countdownLcd.setStyleSheet("border:2px solid red;color:red;background:silver;")
         self.countdownLcd.display(self.get_countdown_to_neep())
 
+        self.shotsLabel = QtWidgets.QLabel(self.str2html('Shots:', 'Arial', 'black', 4))
+        self.shotsLabel.setAlignment(QtCore.Qt.AlignRight)
+        self.rightAnsNum = MyLCDNumber(self.shots, "green")
+
+        self.missesLabel = QtWidgets.QLabel(self.str2html('Misses:', 'Arial', 'black', 4))
+        self.missesLabel.setAlignment(QtCore.Qt.AlignRight)
+        self.wrongAnsNum = MyLCDNumber(self.misses, "red")
+
         self.curWordEn = QtWidgets.QLabel(self.str2html(self.cur_word.liter))
         self.curWordEn.setAlignment(QtCore.Qt.AlignCenter)
         # self.curWordEn.setScaledContents(True)
         self.curWordCn = QtWidgets.QLineEdit()
         self.curWordCn.returnPressed.connect(self.magic)
+
+        self.sub_layout = QtWidgets.QGridLayout()
+        self.sub_layout.addWidget(self.shotsLabel, 0, 0)
+        self.sub_layout.addWidget(self.rightAnsNum, 0, 1)
+        self.sub_layout.addWidget(self.missesLabel, 1, 0)
+        self.sub_layout.addWidget(self.wrongAnsNum, 1, 1)
 
         self.layout = QtWidgets.QGridLayout()
         # self.layout.setSpacing(10)
@@ -109,6 +139,7 @@ class MyWidget(QtWidgets.QWidget):
 
         self.layout.addWidget(self.countdown, 0, 1)
         self.layout.addWidget(self.countdownLcd, 1, 1)
+        self.layout.addLayout(self.sub_layout, 2, 1)
         self.layout.addWidget(self.curWordEn, 3, 1)
         self.layout.addWidget(self.curWordCn, 4, 1)
         self.layout.setColumnStretch(0, 1)
@@ -144,9 +175,11 @@ class MyWidget(QtWidgets.QWidget):
         if ans_res[1] is True:
             self.prevWordCnAns.setText(self.str2html(ans_res[0], 'KaiTi'))
             self.prevWordCnRes.setPixmap(self.posImage)
+            self.rightAnsNum.refresh()
         else:
             self.prevWordCnAns.setText(self.str2html(ans_res[0], 'KaiTi', 'red'))
             self.prevWordCnRes.setPixmap(self.negImage)
+            self.wrongAnsNum.refresh()
 
         self.prevWordCnRes.update()
 
