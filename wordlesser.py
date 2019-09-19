@@ -159,7 +159,7 @@ class MyWidget(QtWidgets.QWidget):
 
     @staticmethod
     def get_countdown_to_neep():
-        neep_date = dt.strptime('2019-12-25 00:00:00', '%Y-%m-%d %H:%M:%S')
+        neep_date = dt.strptime('2019-12-21 00:00:00', '%Y-%m-%d %H:%M:%S')
         now = dt.now()
 
         return (neep_date - now).days
